@@ -1,0 +1,9 @@
+news_sites:
+  eluniversal:
+    url: http://www.eluniversal.com.mx
+    queries:
+      homepage_articule_links: '.field-content a'
+  elpais:
+    url: http://www.eluniversal.com.mx
+    queries:
+      homepage_articule_links: '.field-content a'
