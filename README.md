@@ -32,25 +32,25 @@ Para conocer que comandos podemos usar usamos --help
 
 Para desplegar los paquetes que se instalaron usamos list
 
-> conda list 
+> conda list
 
 ## Creación de entorno virtual ##
 
 Creamos un ambiente virtual como buena práctica usando el siguiente comando
 
-> conda create --name [nombre-del-proyecto] [librerías-a-usar] 
+> conda create --name [nombre-del-proyecto] [librerías-a-usar]
 
 Aquí un ejemplo
 
 > conda create --name dataengine beautifulsoup4 requests numpy pandas matplotlib yaml
 
-Para activar el entorno virtual, usamos: 
+Para activar el entorno virtual, usamos:
 
-> source activate dataengine 
- 
+> source activate dataengine
+
 Para salir del entorno virtual usamos:
 
-> source deactivate 
+> source deactivate
 
 Usamos `env list` para mostrar los ambientes virtuales existentes
 
@@ -60,7 +60,7 @@ Para eliminar entornos, usamos el siguiente comando
 
 > conda remove --name [nombre-del-proyecto]
 
- 
+
 ## Hola mundo ##
 
 Para acceder a Jupyter, usamos el siguiente comando, el cual abre un portal en tu browser.
@@ -76,27 +76,27 @@ En Jupyner, se usan diversos teclas rápidas que a continuación se listan.
 
 A continuación, algunas teclas rápidas en modo navegación
 
-> B -> Nueva linea 
+> B -> Nueva linea
 
-> P-> Barra de ayuda 
+> P-> Barra de ayuda
 
-> X-> Corta 
+> X-> Corta
 
-> V -> Pegar 
+> V -> Pegar
 
-> DD -> Eliminar 
+> DD -> Eliminar
 
-> M -> Modo markdown 
+> M -> Modo markdown
 
 En modo markdown, uso estas ediciones de texto
 
 > # para tamaño H1
 
-> ## para H2 
+> ## para H2
 
->  **ASI SALE NEGRILLAS** 
+>  **ASI SALE NEGRILLAS**
 
-> *Así de hacen cursivas* 
+> *Así de hacen cursivas*
 
 ## Tipos de datos ##
 
@@ -109,9 +109,9 @@ Existen
 
 ## Fuentes de datos ##
 
- - `Web` Es una mina enorme con datos financieros, de startups, del clima, precipitación fluvial, astronómicos, de negocios, etc. 
+ - `Web` Es una mina enorme con datos financieros, de startups, del clima, precipitación fluvial, astronómicos, de negocios, etc.
  - `APIs` Endpoints que viven en la web y nos devuelven JSON. Por ejemplo, la API de twitter, google, facebook.
- - `User Analytics` Son el comportamiento del usuario dentro de nuestra aplicaciones, algo similiar a los que nos ofrece Google Analytics. 
+ - `User Analytics` Son el comportamiento del usuario dentro de nuestra aplicaciones, algo similiar a los que nos ofrece Google Analytics.
  - `IoT - sensores` Se ha vuelto una mina espectacular en los últimos años. Como automóviles.
  - `Datasets públicos` Algunas páginas recomendadas son Google Datasets y data.world y Kaggle.
 
@@ -180,7 +180,7 @@ Para ver las funciones que se pueden usar, usamos el siguiente comando
 print(dir(response))
 ```
 
-Para validar el código de salida de la respuesta 
+Para validar el código de salida de la respuesta
 
 ```
 print(response.status_code)
@@ -261,109 +261,7 @@ Si estos queries se añaden directamente al código principal, el código se vue
 Crear una carpeta con los siguientes archivos
 
 web_scrapper
-|----config.yaml
-|----common.py
-|----main.py
-|----news_page_objects.py
-
-En `config.yaml` cargamos las urls a analizar, así como los selectores usados para los queries.
-
-> vi config.yaml
-
-```
-news_sites:
-  eluniversal:
-    url: http://www.eluniversal.com.mx
-  elpais:
-    url: https://elpais.com
-```
-
-En `common.py` se ingresa la carga del archivo config.yaml.
-
-> vi common.py
-
-```
-import yaml
-
-
-__config = None
-
-def config():
-	global __config
-	if not __config:
-		with open('config.yaml', mode='r') as f:
-			__config =yaml.load(f)
-	return __config
-```
-
-En `news_page_objects.py` se da de alta los elementos que se encuentran en las páginas y como se detectan, en forma de una clase Modelo
-
-```
-import bs4
-import requests
-from common import config
-
-class HomePage:
-	"""Clase del objeto HTML consultado y analizado"""
-	def __init__(self, news_site_uid, url):
-		"""Constructor donde se consulta a la URL"""
-		self._config = config()['news_sites'][news_site_uid]
-		self._queries = self._config['queries']
-		self._html = None	
-		self._visit(url)
-
-	@property
-	def articule_links(self):
-		link_list = []
-		for link in self._select(self._queries['homepage_articule_links']):
-			if link and link.has_attr('href'):
-				link_list.append(link)
-		return set(link['href'] for link in link_list)
-
-	def _select(self, query_string):
-		return self._html.select(query_string)
-
-	def _visit(self, url):
-		"""Función para obtener el contenido y hacer el parseo"""
-		response = requests.get(url)
-		response.raise_for_status()
-		self._html = bs4.BeautifulSoup(response.text, 'html.parser')
-```
-
-En `main.py` se genera la aplicación principal. Se usa la librería `argparse` para hacer un menú precargado.
-
-```
-import argparse
-import logging
-"""Importacion de libreria de logging a nivel INFO"""
-logging.basicConfig(level=logging.INFO)
-
-import news_page_objects as news
-from common import config
-
-
-logger = logging.getLogger(__name__)
-
-def _news_scraper(news_site_uid):
-	""""Modulo que genera el scrapper de la pagina seleccionada"""
-	host = config()['news_sites'][news_site_uid]['url']
-	logging.info('Beggining scrapper for {}'.format(host))
-	homepage = news.HomePage(news_site_uid, host)
-
-	for link in homepage.articule_links:
-		print(link) 
-
-if __name__ == '__main__':
-	"""Funcion principal"""
-	parser = argparse.ArgumentParser()
-	news_site_choices = list(config()['news_sites'].keys())
-	parser.add_argument(
-		'news_site',
-		help='Site that you want to scrape',
-		type=str,
-		choices=news_site_choices
-		)
-
-	args = parser.parse_args()
-	_news_scraper(args.news_site)
-```
+|----config.yaml - Cargamos las urls a analizar, así como los selectores usados para los queries.
+|----common.py - se ingresa la carga del archivo config.yaml.
+|----main.py - se genera la aplicación principal. Se usa la librería `argparse` para hacer un menú precargado.
+|----news_page_objects.py - se da de alta los elementos que se encuentran en las páginas y como se detectan, en forma de una clase Modelo
