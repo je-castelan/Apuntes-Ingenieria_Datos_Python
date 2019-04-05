@@ -15,6 +15,10 @@ APUNTES INGENIERÍA DE DATOS CON PYTHON (ANACONDA)
  * [Analizando un sitio web para encontrar las directivas a utilizar al hacer un web scrapping](#Analizando-un-sitio-web-para-encontrar-las-directivas-a-utilizar-al-hacer-un-web-scrapping)
  * [Solicitudes a la web mediante Requests](#Solicitudes-a-la-web-mediante-Requests)
  * [Implementación de web Scrapper](#Implementación-de-web-Scrapper)
+ * [Introducción a Pandas](#Introducción-a-Pandas)
+ * [Estructura de datos Series](#Estructura-de-datos-Series)
+ * [Estructura de datos DataFrames](#Estructura-de-datos-DataFrames)
+ * [Índices y selección](#Índices-y-selección)
 
 ## Instalación ##
 
@@ -265,3 +269,144 @@ web_scrapper
 |----common.py - se ingresa la carga del archivo config.yaml.
 |----main.py - se genera la aplicación principal. Se usa la librería `argparse` para hacer un menú precargado.
 |----news_page_objects.py - se da de alta los elementos que se encuentran en las páginas y como se detectan, en forma de una clase Modelo
+
+## Introducción a Pandas ##
+
+Pandas nos otorga diversa facilidades para el `domados de datos`. Nos otorga dos estructura de datos:
+
+ - `Series`: Es un array unidimensional que representa una columna.
+ - `DataFrame`: Es un conjunto de series que forman una tabla. Se pueden acceder a través de indices como un etiqueta(label) o pueden ser posicionales es decir 0 o indice 100. También pueden ser rangos o slices
+
+Estas estructuras de datos no son contenedores de datos. En Pandas las utilizamos para transformar y enriquecer nuestros datos, manipularlos, manejar los faltantes, realizar operaciones aritméticas, combinar diferentes dataframes en uno solo para obtener una nueva tabla.
+
+## Estructura de datos Series ##
+
+Series es un vector unidimensional, para poder acceder a esta lista podemos usar posiciones o labels, siendo este último el preferido para manipular las series. Una diferencia importante sobre las listas de Python es que los datos son `homogéneos`, es decir solo podemos tener un tipo de dato por cada Serie.
+
+Las Series se pueden crear a partir de cualquier secuencia(listas, tuplas, arrays de numpy y diccionarios).
+
+En Python tenemos la filosofía del Duck Typing, si se ve como un pato y hace cuac, a ese animal le llamamos pato, si una serie se comporta una lista, se accede como una lista en principio deberíamos llamarla lista, pero esto no es así.
+
+Una mejor aproximación para inicializar Series es utilizar diccionarios.
+
+Debemos entrar a Jupyter
+
+> source activate dataengine
+
+> jupyter notebook
+
+Se inicializa Pandas
+
+> import pandas as pd
+
+Se crea la serie con lista
+
+> series_test = pd.Series([100,200,300])
+
+> series_test
+
+```
+0    100
+1    200
+2    300
+dtype: int64
+
+```
+
+También se puede crear como diccionario para que tenga índices
+
+> series_test2 = pd.Series({1999: 48, 2000: 65, 2001:89})
+
+> series_test2
+
+```
+1999    48
+2000    65
+2001    89
+dtype: int64
+```
+
+## Estructura de datos DataFrames ##
+
+DataFrames son simplemente una tabla donde las filas y las columnas tienen etiquetas, se puede construir de diferentes formas pero siempre debemos considerar que la estructura que necesitamos construir para inicializarla tiene que ser bidimensional. Una matriz y puede ser una lista de listas, lista de tuplas, un diccionario de Python u otro DataFrame.
+
+Si solo tenemos una dimensión a eso no le llamamos DataFrame, le llamamos Serie. Cuando utilizamos un diccionario las llaves se convierten en las llaves de la columna.
+
+Se inicializa Pandas
+
+> import pandas as pd
+
+Se crea el DataFrame como diccionario
+
+> frame_test = pd.DataFrame({1999: [74,30,39],2000: [44,86,23], 2001: [35,46,64]})
+
+> frame_test
+
+```
+  1999  2000  2001
+0 74	44	35
+1	30	86	46
+2	39	23	64
+```
+
+También se puede crear con lista de listas.
+
+> frame_test2 = pd.DataFrame([[74,30,39],[44,86,23],[35,46,64]], columns = [1999,2000,2001])
+
+> frame_test2
+
+```
+  1999  2000  2001
+0 74	44	35
+1	30	86	46
+2	39	23	64
+```
+
+## Índices y selección ##
+
+Existen muchas formas de manipular los DataFrames y de seleccionar los elementos que queremos transformar.
+
+```
+Dictionary like:
+df[`col1`] #Regresa un dataserie
+df[['col1', 'col3']] #Regresa un dataframe
+
+Numpy like:
+# iloc = index location
+df.iloc[:] #fila
+df.iloc[:,:] #fila y columna
+
+Label based:
+# loc = location
+df.loc[:] # fila
+df.loc[:,:] #fila y columna
+
+```
+
+Para leer datos se usa
+
+> el_universal =  pd.read_csv('carpeta/archivo.csv')
+
+Para solo imprimir un extracto del DataFrame
+
+> el_universal.head() #primeros 5
+
+> el_universal.tail() #ultimos 5
+
+Dictionary like
+
+> el_universal['title'] #Devuelve una series
+
+> el_universal[['title','url']] #Devuelve un DataFrame
+
+Numpy like (excluye último valor de la selección)
+
+> el_universal.iloc[10:15] #Devuelve los registros de la 10 a la 15
+
+> el_universal.iloc[13]['title'] #Devuelve el título del registro 13
+
+> el_universal.iloc[:6,0] #Primera columna de los primeros 6 registros
+
+Label based (incluye último valor de la selección)
+
+> el_universal.loc[: , 'body':'title'] #Body y title de todos los registros
