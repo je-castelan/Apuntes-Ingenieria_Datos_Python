@@ -19,6 +19,10 @@ APUNTES INGENIERÍA DE DATOS CON PYTHON (ANACONDA)
  * [Estructura de datos Series](#Estructura-de-datos-Series)
  * [Estructura de datos DataFrames](#Estructura-de-datos-DataFrames)
  * [Índices y selección](#Índices-y-selección)
+ * [Data wrangling con Pandas](#Data-wrangling-con-Pandas)
+ * [¿Cómo trabajar con datos faltantes?](#Cómo-trabajar-con-datos-faltantes)
+ * [Enriquecimiento de los datos](#Enriquecimiento-de-los-datos)
+ * [Valores duplicados en Jupyter](#Valores-duplicados-en-Jupyter)
 
 ## Instalación ##
 
@@ -410,3 +414,161 @@ Numpy like (excluye último valor de la selección)
 Label based (incluye último valor de la selección)
 
 > el_universal.loc[: , 'body':'title'] #Body y title de todos los registros
+
+## Data wrangling con Pandas ##
+
+Data wrangling es una de las actividades más importantes de todos los profesionales de datos. Simplemente es limpiar, transformar y enriquecer el dataset para objetivos posteriores.
+
+Pandas es una de las herramientas más poderosas para realizar este ““domado”” de datos. Recordemos que Pandas trae muchas de sus abstracciones del lenguaje R, pero nos otorga lo mejor de ambos mundos, por eso es tan popular.
+
+Nos permite:
+
+ - Generar transformaciones con gran facilidad.
+ - Trabajar rápidamente con datasets grandes
+ - Detectar y reemplazar faltantes
+ - Agrupar y resumir nuestros datos
+ - Visualizar nuestros resultados.
+
+En el wrapngling podemos hacer labores como:
+
+ - Añadir campos con un valor estático
+
+```
+el_universal['newspaper_uid'] = 'el_universal'
+el_universal.head()
+```
+
+ - Añadir campos a partir de otros campos
+
+ ```
+ #Obtener host
+ from urllib.parse import urlparse
+ el_universal['host'] = el_universal['url'].apply(lambda url: urlparse(url).netloc)
+ el_universal.head()
+ ```
+
+ - Contar registros con valores similares
+
+ > el_universal['host'].value_counts()
+
+ ```
+ www.eluniversal.com.mx         87
+ www.viveusa.mx                  9
+ www.elbotiquin.mx               8
+ sanluis.eluniversal.com.mx      5
+ oaxaca.eluniversal.com.mx       5
+ www.eluniversalqueretaro.mx     5
+ www.elgrafico.mx                5
+ de10.com.mx                     4
+ www.unionjalisco.mx             4
+ www.unioncdmx.mx                2
+ www.unionpuebla.mx              2
+ www.unionedomex.mx              2
+ www.unionyucatan.mx             2
+ www.unionguanajuato.mx          1
+ www.clubeluniversal.mx          1
+ ```
+
+## ¿Cómo trabajar con datos faltantes? ##
+
+Los datos faltantes representan un verdadero problema sobre todo cuando estamos realizando agregaciones. Imagina que tenemos datos faltantes y los llenamos con 0, pero eso haría que la distribución de datos se modificaría radicalmente. Podemos eliminar los registros, pero la fuerza de nuestras conclusiones se debilita.
+
+ Pandas nos otorga varias funcionalidades para identificarlas y para trabajar con ellas. Existe el concepto que se llama NaN, cuando existe un dato faltante simplemente se rellena con un NaN y en ese momento podemos preguntar cuáles son los datos faltantes con .isna().
+
+ notna() para preguntar dónde hay datos completos.
+ dropna() para eliminar el registro.
+
+ Para reemplazar:
+ fillna() donde le damos un dato centinela
+ ffill() donde utiliza el último valor.
+
+ - Rellenado de nulos
+```
+#Primero obtiene los números de registro con datos faltantes
+missing_title_mask = el_universal['title'].isna()
+#Extrae la última parte de la URL
+missing_titles = (el_universal[missing_title_mask]['url']
+                  .str.extract(r'(?P<missing_titles>[^/]+)$')
+                  .applymap(lambda title: title.split('-'))
+                  .applymap(lambda title_word_list: ' '.join(title_word_list)))
+#Añade títulos faltantes
+el_universal.loc[missing_title_mask, 'title'] =  missing_titles.loc[:,'missing_titles']
+
+```
+
+ - Generación de ID's
+```
+# Añade UID a las filas las cuales las genera hexadecimalmente
+import hashlib
+uids = (el_universal
+        .apply(lambda row: hashlib.md5(bytes(row['url'].encode())), axis=1)
+        .apply(lambda hash_object: hash_object.hexdigest())
+        )
+el_universal['uid'] = uids
+#Asigna uids como index
+el_universal.set_index('uid', inplace=True)
+el_universal
+```
+ - Depurado de saltos de línea
+
+ ```
+ stripped_body = (el_universal
+                  .apply(lambda row: row['body'], axis=1)
+                  .apply(lambda body: list(body))
+                  .apply(lambda letters: list(map(lambda letter: letter.replace('\n',''), letters)))
+                  .apply(lambda letters: ''.join(letters))
+                 )
+el_universal['body'] = stripped_body
+ el_universal
+ ```
+
+## Enriquecimiento de los datos ##
+ Podemos enriquecer nuestra tabla con información adicional, un poco de información numérica para realizar análisis posterior.
+
+ Usaremos `nltk` es una librería dentro del stack de Ciencia de Datos de Python que nos va a permitir tokenizar, separar palabras dentro del título y nos permitirá contar la frecuencia de cuántas palabras existen en nuestro título y body
+
+Debemos importar las siguientes Librerías
+```
+import nltk
+from nltk.corpus import stopwords
+```
+
+Para la primera vez de ejecución, debemos descargar las siguientes librerías
+
+> nltk.download('punkt')
+> nltk.download('stopwords')
+
+
+Se declara que se tokenizarán palabras en español
+
+> stop_words = set(stopwords.words('spanish'))
+
+Esta sería la función de tokenizar
+
+
+```def tokenize_columns(df, column_name):
+    return (df
+           .dropna()
+           .apply(lambda row: nltk.word_tokenize(row[column_name]), axis=1)
+           .apply(lambda tokens: list(filter(lambda token: token.isalpha(),tokens)))
+           .apply(lambda tokens: list(map(lambda token: token.lower(),tokens)))
+           .apply(lambda word_list: list(filter(lambda word: word not in stop_words, word_list)))
+        .apply(lambda valid_word_list: len(valid_word_list))
+           )
+```
+
+Esta se puede usar para toknizar rl nombre y el título
+
+> el_universal['n_tokens_title'] = tokenize_columns(el_universal,'title')
+> el_universal['n_tokens_body'] = tokenize_columns(el_universal,'body')
+
+## Valores duplicados en Jupyter ##
+
+Estos valores duplicados es importantes identificarlos y removerlos de nuestro datasets para que esos valores no generen un peso no justificado dentro del análisis a realizar dentro de nuestro Pipelines.
+
+Pandas nos otorga la función drop_duplicates para eliminar estos valores duplicados.
+
+```
+el_universal.drop_duplicates(subset=['title'],keep='first', inplace=True)
+el_universal
+```
