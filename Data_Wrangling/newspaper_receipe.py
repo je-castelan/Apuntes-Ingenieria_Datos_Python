@@ -36,7 +36,7 @@ def _read_data(filename):
 def _extract_newspaper_uid(filename):
     """Extracción de nombre de página web basado en el título del archivo"""
     logger.info('Extracting newspaper uid')
-    newspaper_uid = filename.split('_')[0]
+    newspaper_uid = filename.split('/')[-1].split('_')[0]
     logger.info('Newspaper uid detected: {}'.format(newspaper_uid))
     return newspaper_uid
 
@@ -111,7 +111,7 @@ def _drop_rows_with_missing_values(df):
 
 def _save_data(df, filename):
     """Guardado de archivo"""
-    clean_filename = filename.replace("_articles.csv", "_cleaned_articles.csv").split("/")[-1]
+    clean_filename = filename.replace(".csv", "_cleaned.csv").split("/")[-1]
 
     logger.info('Saving data at location: {}'.format(clean_filename))
     df.to_csv(clean_filename)

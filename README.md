@@ -23,6 +23,11 @@ APUNTES INGENIERÍA DE DATOS CON PYTHON (ANACONDA)
  * [¿Cómo trabajar con datos faltantes?](#Cómo-trabajar-con-datos-faltantes)
  * [Enriquecimiento de los datos](#Enriquecimiento-de-los-datos)
  * [Valores duplicados en Jupyter](#Valores-duplicados-en-Jupyter)
+ * [Visualización de datos](#Visualización-de-datos)
+ * [Automatización del Pipline](#Automatización-del-Pipline)
+ * [Cargando datos a SQLite](#Cargando-datos-a-SQLite)
+ * [Introducción a los sistemas de datos](#Introducción-a-los-sistemas-de-datos)
+ * [¿Por qué usar la nube?](#Por-qué-usar-la-nube)
 
 ## Instalación ##
 
@@ -572,3 +577,193 @@ Pandas nos otorga la función drop_duplicates para eliminar estos valores duplic
 el_universal.drop_duplicates(subset=['title'],keep='first', inplace=True)
 el_universal
 ```
+
+## Visualización de datos ##
+
+Idealmente se debe trabajar con más de un datarame para este módulo
+
+```
+clean_eluniversal = pd.read_csv('Data_Wrangling/eluniversal_2019_04_21_cleaned_articles.csv')
+clean_elpais = pd.read_csv('Data_Wrangling/elpais_2019_04_21_cleaned_articles.csv')
+```
+
+La función `describe()` explica los estadísticos de un DataFrame
+
+> clean_eluniversal.describe()
+
+```
+n_tokens_title	n_tokens_body
+count	128.000000	128.000000
+mean	5.351562	236.492188
+std	1.872258	213.998234
+min	1.000000	9.000000
+25%	4.000000	111.000000
+50%	5.000000	172.000000
+75%	7.000000	275.500000
+max	9.000000	1318.000000
+```
+
+Graficamos con puntos con la función `plot(style=.)`
+
+> clean_elpais['n_tokens_title'].plot(style='k.') #K= negro. EL punto es que se hace la gráfica de puntos
+
+> clean_eluniversal['n_tokens_title'].plot(style='r.') #r= rojo. EL punto es que se hace la gráfica de puntos
+
+Se usa `pd.concat` para unir dos DataFrames
+
+> all_newspapers = pd.concat([clean_eluniversal, clean_elpais])
+
+Para generar una tabla con agrupaciones sobre un campo específico, se usa `groupby`
+
+> grouped = all_newspapers.groupby('newspaper_uid')
+
+Para hacer histogramas, se usa `hist()`
+
+> grouped.hist()
+
+Para generar una tabla con valores estadísticos agupados, se usa `agg`
+
+> grouped['n_tokens_body'].agg(['min','mean','max'])
+
+La función `plot` sin argumentos genera una gráfica de líneas
+
+> grouped.plot()
+
+## Introducción a los sistemas de datos ##
+
+Los sistemas de datos vienen en muchos sabores y colores, SQL, NoSQL, especializados en procesamiento en bloque, chorro y streaming. Este tipo de sistema nos permite realizar queries sofisticadas y compartir nuestro trabajo con otros miembros del equipo.
+
+Procesamiento de bloque: Estamos hablando de datos históricos, qué sucedió ayer, en el trimestre pasado, cuáles fueron las ventas del año anterior o de los últimos cinco años. Nos permite realizar el procesamiento de manera eficiente.
+
+Procesamiento en chorro: Significa que estamos procesando los datos conforme van llegando, las transformaciones se realizan en tiempo real, Este tipo de sistema nos sirven para cuando queremos realizar decisiones en donde la importancia del tiempo es fundamental.
+
+El criterio principal a tener en cuenta: El tiempo que tienes. Si bien los sistemas open source son gratis, para poderlos implementar necesitas tener conocimientos de cloud, debes poder saber trabajar y mantener máquinas.
+
+SQL vs NoSQL
+
+La discusión más relevante en el mundo de las aplicaciones web y móvil, donde dependiendo de la aplicación, la decisión puede ser fundamental para el crecimiento de la app.
+La verdad es que para los profesionales de los datos, especialmente los profesionales de los datos. Es necesario saber ambos.
+
+## Cargando datos a SQLite ##
+
+Para ello, hay que instalar `sqlarchemy`
+
+> conda install sqlalchemy
+
+Se debe tener una clase de motor de base de DATOS
+
+```
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+Engine = create_engine('sqlite:///newspaper.db')
+
+Session = sessionmaker(bind=Engine)
+
+Base = declarative_base()
+```
+
+Y este manejará una clase con el modelado de la tabla
+
+```
+from sqlalchemy import Column, String, Integer
+
+from load_sql import Base
+
+class Article(Base):
+    __tablename__ = 'articles'
+
+    id = Column(String, primary_key=True)
+    body = Column(String)
+    host = Column(String)
+    title = Column(String)
+    newspaper_uid = Column(String)
+    n_tokens_body = Column(Integer)
+    n_tokens_title = Column(Integer)
+    url = Column(String, unique=True)
+
+    def __init__(self, uid,body,host,newspaper_uid, n_tokens_body,n_tokens_title,title,url):
+        self.id= uid
+        self.body = body
+        self.host = host
+        self.newspaper_uid = newspaper_uid
+        self.title = title
+        self.n_tokens_body = n_tokens_body
+        self.n_tokens_title = n_tokens_title
+        self.url = url
+```
+
+Con ello, en una aplicación main se hace la carga
+
+```
+def main(filename):
+    Base.metadata.create_all(Engine)
+    session = Session()
+    articles = pd.read_csv(filename)
+
+    for index, row in articles.iterrows():
+        logger.info('Loading article uid {} into DB'.format(row['uid']))
+        article = Article(row['uid'],
+                        row['body'],
+                        row['host'],
+                        row['newspaper_uid'],
+                        row['n_tokens_body'],
+                        row['n_tokens_title'],
+                        row['title'],
+                        row['url'])
+        session.add(article)
+    session.commit()
+    session.close()
+```
+
+## Automatización del Pipline ##
+
+Se hará el ETL en una sola función.
+
+```
+def main():
+    _extract()
+    _transform()
+    _load()
+
+def _extract():
+    logger.info("Starting extract process")
+    for news_site_uid in news_sites_uids:
+        subprocess.run(['python','main.py',news_site_uid], cwd='../Web_Scrapper')
+        subprocess.run(['find','.','-name','{}*'.format(news_site_uid),
+                        '-exec', 'mv', '{}', '../Data_Wrangling/{}.csv'.format(news_site_uid),
+                        ';'], cwd='../Web_Scrapper')
+
+def _transform():
+    logger.info("Starting transform process")
+    for news_site_uid in news_sites_uids:
+        subprocess.run(['python','newspaper_receipe.py','{}.csv'.format(news_site_uid)], cwd='../Data_Wrangling')
+        subprocess.run(['find','.','-name','{}*cleaned*'.format(news_site_uid),
+                        '-exec', 'mv', '{}', '../Load_Database/{}.csv'.format(news_site_uid),
+                        ';'], cwd='../Data_Wrangling')
+        subprocess.run(['find','.','-name','{}*'.format(news_site_uid),
+                        '-exec', 'rm', '{}',';'], cwd='../Data_Wrangling')
+
+def _load():
+    logger.info("Starting loading process")
+    for news_site_uid in news_sites_uids:
+        subprocess.run(['python','main.py','{}.csv'.format(news_site_uid)], cwd='../Load_Database')
+        subprocess.run(['find','.','-name','{}*'.format(news_site_uid),
+                        '-exec', 'rm', '{}',';'], cwd='../Load_Database')
+```
+
+## ¿Por qué usar la nube? ##
+La nube nos da un poder de cómputo casi inimaginable, nos permite procesar terabytes de datos en segundos. La nube se puede usar en dos grandes ocasiones. Cuando los datos ya no caben en tu computadora loca o cuando el tiempo de procesamiento esta siendo muy extenso, es en ese momento donde deberías usar la nube.
+
+Si estas en un entorno de producción, si estas trabajando en una empresa y los datos de esa empresa ya viven en la nube, lo lógico es realizar el trabajo en la nube. Automatizar los scripts en ese mismo ambiente.
+
+Diversas nubes ya ofrecen paquetes completos para el ciclo de datos, como Google Cloud:
+
+ * Dataflow
+ * Pub/Sub
+ * Cloud Storage
+ * Datalab
+ * BigQuery
+ * Dataproc
+ * Firestore
